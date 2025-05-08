@@ -1,1 +1,220 @@
-Hello world
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eden - 生物圈模拟器</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            display: flex;
+            min-height: 100vh;
+            background-color: #f0f8f0;
+        }
+        
+        .container {
+            display: flex;
+            width: 100%;
+            gap: 20px;
+        }
+        
+        #resources {
+            flex: 1;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        #actions {
+            flex: 2;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        #messages {
+            flex: 1;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            overflow-y: auto;
+            max-height: 80vh;
+        }
+        
+        .button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .button:hover {
+            background-color: #45a049;
+        }
+        
+        .button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .resource-item {
+            margin: 10px 0;
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .message {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="resources">
+            <h2>资源</h2>
+            <div id="resource-list">
+                <!-- 资源列表将通过JavaScript动态生成 -->
+            </div>
+        </div>
+        
+        <div id="actions">
+            <h2>操作</h2>
+            <button class="button" onclick="createGrass()">创造草</button>
+            <button class="button" onclick="createSheep()" id="createSheepBtn" disabled>创造羊</button>
+            <button class="button" onclick="createWolf()" id="createWolfBtn" disabled>创造狼</button>
+        </div>
+        
+        <div id="messages">
+            <h2>消息</h2>
+            <div id="message-list">
+                <!-- 消息将通过JavaScript动态生成 -->
+            </div>
+        </div>
+    </div>
+    <script>
+        // 游戏状态
+        const gameState = {
+            resources: {
+                light: 0,        // 光能
+                chlorophyll: 0,  // 叶绿能
+                biomass: 0,      // 生物质
+                grass: 0,        // 草的数量
+                sheep: 0,        // 羊的数量
+                wolf: 0          // 狼的数量
+            },
+            costs: {
+                grass: 10,       // 创造草需要的光能
+                sheep: 50,       // 创造羊需要的生物质
+                wolf: 100        // 创造狼需要的生物质
+            }
+        };
+
+        // 更新资源显示
+        function updateResources() {
+            const resourceList = document.getElementById('resource-list');
+            resourceList.innerHTML = '';
+            
+            for (const [resource, amount] of Object.entries(gameState.resources)) {
+                const div = document.createElement('div');
+                div.className = 'resource-item';
+                div.textContent = `${resource}: ${Math.floor(amount)}`;
+                resourceList.appendChild(div);
+            }
+            
+            // 更新按钮状态
+            document.getElementById('createSheepBtn').disabled = gameState.resources.biomass < gameState.costs.sheep;
+            document.getElementById('createWolfBtn').disabled = gameState.resources.biomass < gameState.costs.wolf;
+        }
+
+        // 添加消息
+        function addMessage(message) {
+            const messageList = document.getElementById('message-list');
+            const div = document.createElement('div');
+            div.className = 'message';
+            div.textContent = message;
+            messageList.insertBefore(div, messageList.firstChild);
+        }
+
+        // 创建草
+        function createGrass() {
+            if (gameState.resources.light >= gameState.costs.grass) {
+                gameState.resources.light -= gameState.costs.grass;
+                gameState.resources.grass++;
+                addMessage('新的草生长出来了！');
+                updateResources();
+            }
+        }
+
+        // 创建羊
+        function createSheep() {
+            if (gameState.resources.biomass >= gameState.costs.sheep) {
+                gameState.resources.biomass -= gameState.costs.sheep;
+                gameState.resources.sheep++;
+                addMessage('一只羊出现了！');
+                updateResources();
+            }
+        }
+
+        // 创建狼
+        function createWolf() {
+            if (gameState.resources.biomass >= gameState.costs.wolf) {
+                gameState.resources.biomass -= gameState.costs.wolf;
+                gameState.resources.wolf++;
+                addMessage('一只狼出现了！');
+                updateResources();
+            }
+        }
+
+        // 资源生产循环
+        setInterval(() => {
+            // 草产生光能和叶绿能
+            gameState.resources.light += gameState.resources.grass * 0.1;
+            gameState.resources.chlorophyll += gameState.resources.grass * 0.05;
+            
+            // 叶绿能转化为生物质
+            if (gameState.resources.chlorophyll >= 1) {
+                gameState.resources.biomass += gameState.resources.chlorophyll * 0.1;
+                gameState.resources.chlorophyll -= gameState.resources.chlorophyll * 0.1;
+            }
+            
+            // 羊消耗草
+            if (gameState.resources.sheep > 0) {
+                gameState.resources.biomass += gameState.resources.sheep * 0.2;
+                if (gameState.resources.grass > 0) {
+                    gameState.resources.grass -= gameState.resources.sheep * 0.1;
+                }
+            }
+            
+            // 狼捕食羊
+            if (gameState.resources.wolf > 0 && gameState.resources.sheep > 0) {
+                gameState.resources.sheep -= gameState.resources.wolf * 0.05;
+                gameState.resources.biomass += gameState.resources.wolf * 0.3;
+            }
+            
+            // 确保数值不会小于0
+            for (let resource in gameState.resources) {
+                gameState.resources[resource] = Math.max(0, gameState.resources[resource]);
+            }
+            
+            updateResources();
+        }, 1000);
+
+        // 初始化
+        updateResources();
+        addMessage('欢迎来到Eden生物圈模拟器！');
+    </script>
+</body>
+</html>
